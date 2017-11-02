@@ -10,7 +10,7 @@ class BinaryRowDataPacket: RowDataParsable {
         self.columns = columns
     }
     
-    func parse(bytes: [UInt8]) throws -> Row? {
+    func parse(bytes: [UInt8]) throws -> [Any?]? {
         if columns.isEmpty {
             return nil
         }
@@ -33,7 +33,7 @@ class BinaryRowDataPacket: RowDataParsable {
 
         var pos = 1 + (columns.count + 7 + 2)>>3
         let nullBitmap = Array(bytes[1..<pos])
-        var row = Row()
+        var rows = [Any?]()
 
         for index in 0..<columns.count {
             let idx = (index+2)>>3
@@ -42,59 +42,60 @@ class BinaryRowDataPacket: RowDataParsable {
             let column = columns[index]
 
             if (val & 1) == 1 {
-                row[column.name] = NSNull()
+                rows.append(nil)
                 continue
             }
 
+            let row: Any?
             switch column.fieldType {
             case .null:
-                row[column.name] = NSNull()
+                row = nil
 
             case .tiny:
-                row[column.name] = column.flags.isUnsigned() ? UInt8(bytes[pos..<pos+1]) : Int8(bytes[pos..<pos+1])
+                row = column.flags.isUnsigned() ? UInt8(bytes[pos..<pos+1]) : Int8(bytes[pos..<pos+1])
                 pos += 1
 
             case .short:
-                row[column.name] = column.flags.isUnsigned() ? UInt16(bytes[pos..<pos+2]) : Int16(bytes[pos..<pos+2])
+                row = column.flags.isUnsigned() ? UInt16(bytes[pos..<pos+2]) : Int16(bytes[pos..<pos+2])
                 pos += 2
 
             case .int24, .long:
-                row[column.name] = column.flags.isUnsigned() ? UInt(UInt32(bytes[pos..<pos+4])) : Int(Int32(bytes[pos..<pos+4]))
+                row = column.flags.isUnsigned() ? UInt(UInt32(bytes[pos..<pos+4])) : Int(Int32(bytes[pos..<pos+4]))
                 pos += 4
 
             case .longlong:
-                row[column.name] = column.flags.isUnsigned() ? UInt64(bytes[pos..<pos+8]) : Int64(bytes[pos..<pos+8])
+                row = column.flags.isUnsigned() ? UInt64(bytes[pos..<pos+8]) : Int64(bytes[pos..<pos+8])
                 pos += 8
 
             case .float:
-                row[column.name] = bytes[pos..<pos+4].float32()
+                row = bytes[pos..<pos+4].float32()
                 pos += 4
 
             case .double:
-                row[column.name] = bytes[pos..<pos+8].float64()
+                row = bytes[pos..<pos+8].float64()
                 pos += 8
 
             case .blob, .mediumBlob, .varchar, .varString, .string, .longBlob:
                 if column.charSetNr == 63 {
                     let (bres, n) = lenEncBin(Array(bytes[pos..<bytes.count]))
-                    row[column.name] = bres
+                    row = bres
                     pos += n
                 }
                 else {
                     let (str, n) = lenEncStr(Array(bytes[pos..<bytes.count]))
-                    row[column.name] = str
+                    row = str
                     pos += n
                 }
 
             case .decimal, .newdecimal, .bit, .`enum`, .set, .geometory, .json:
                 let (str, n) = lenEncStr(Array(bytes[pos..<bytes.count]))
-                row[column.name] = str
+                row = str
                 pos += n
 
             case .date:
                 let (_dlen, n) = lenEncInt(Array(bytes[pos..<bytes.count]))
                 guard let dlen = _dlen else {
-                    row[column.name] = NSNull()
+                    row = nil
                     break
                 }
 
@@ -116,14 +117,14 @@ class BinaryRowDataPacket: RowDataParsable {
                     break
                 }
 
-                row[column.name] = res ?? NSNull()
+                row = res
 
                 pos += n + Int(dlen)
 
             case .time:
                 let (_dlen, n) = lenEncInt(Array(bytes[pos..<bytes.count]))
                 guard let dlen = _dlen else {
-                    row[column.name] = NSNull()
+                    row = nil
                     break
                 }
 
@@ -147,7 +148,7 @@ class BinaryRowDataPacket: RowDataParsable {
                     break
                 }
 
-                row[column.name] = res ?? NSNull()
+                row = res
 
                 pos += n + Int(dlen)
 
@@ -155,7 +156,7 @@ class BinaryRowDataPacket: RowDataParsable {
                 let (_dlen, n) = lenEncInt(Array(bytes[pos..<bytes.count]))
 
                 guard let dlen = _dlen else {
-                    row[column.name] = NSNull()
+                    row = nil
                     break
                 }
 
@@ -182,14 +183,16 @@ class BinaryRowDataPacket: RowDataParsable {
                 }
 
                 let dstr = String(format: "%4d-%02d-%02d %02d:%02d:%02d.%06d", arguments: [y, mo, d, h, m, s, u])
-                row[column.name] = Date(dateTimeStringUsec: dstr) ?? NSNull()
+                row = Date(dateTimeStringUsec: dstr)
 
                 pos += n + Int(dlen)
             default:
-                row[column.name] = NSNull()
+                row = nil
             }
+            
+            rows.append(row)
         }
         
-        return row
+        return rows
     }
 }

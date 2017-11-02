@@ -3,9 +3,6 @@ import XCTest
 import Foundation
 
 class TransactionTests: XCTestCase {
-    
-    var tableName = "`swift_mysql_test`.`users`"
-    
     static var allTests : [(String, (TransactionTests) -> () throws -> Void)] {
         return [
             ("testTransactionCommit", testTransactionCommit),
@@ -15,75 +12,62 @@ class TransactionTests: XCTestCase {
     
     override func setUp() {
         signal(EINTR) { _ in }
-        do {
-            let con = try Connection(url: URL(string: "mysql://localhost:3306")!, user: "root")
-            _ = try? con.query("DROP TABLE \(tableName)")
-            _ = try con.query("""
-            CREATE TABLE \(tableName) (
-                `id` int not null auto_increment,
-                `name` varchar(255) not null,
-                `email` varchar(255) not null,
-                PRIMARY KEY(`id`)
-            )  ENGINE=InnoDB DEFAULT CHARSET=utf8
-            """)
-            try con.close()
-        } catch {
-            XCTFail("\(error)")
-        }
+        try! prepareTestDataSeed()
     }
     
     override func tearDown() {
-        let con = try? Connection(url: URL(string: "mysql://localhost:3306")!, user: "root")
-        _ = try? con?.query("DROP TABLE \(tableName)")
-        try? con?.close()
+        cleanTestTables()
     }
     
     func testTransactionCommit(){
         do {
-            let con = try Connection(url: URL(string: "mysql://localhost:3306")!, user: "root")
+            let con = try newConnection(withDatabase: testDatabaseName)
             defer {
                 try? con.close()
             }
             _ = try con.transaction { con in
-                try _ = con.query("""
-                    INSERT INTO \(tableName)(name, email)
+                let res = try con.query("""
+                    INSERT INTO \(userTableName)(name, email)
                         VALUES
-                        ("Test User", "test@example.com");
+                        ("Jack", "jack@example.com");
                     """)
+                XCTAssertEqual(res.asQueryStatus()?.insertId, 201)
             }
             
-            let result = try con.query("select * from \(tableName)")
-            XCTAssertEqual(result.asResultSet()?.count, 1)
+            let result = try con.query("select * from \(userTableName)")
+            XCTAssertEqual(result.asRows()?.count, 201)
         } catch {
             XCTFail("\(error)")
         }
     }
     
     func testTransactionRollback() {
-        let con = try? Connection(url: URL(string: "mysql://localhost:3306")!, user: "root")
+        let con = try? newConnection(withDatabase: testDatabaseName)
         
         do {
-            defer {
-                try? con?.close()
-            }
             _ = try con?.transaction { con in
                 try _ = con.query("""
-                    INSERT INTO \(tableName)(name, email)
+                    INSERT INTO \(userTableName)(name, email)
                     VALUES
                     ("Test User", "test@example.com");
                     """)
                 
                 try _ = con.query("""
-                    INSERT INTO \(tableName)(id, name, email)
+                    INSERT INTO \(userTableName)(id, name, email)
                     VALUES
-                    (1, "Test User", "test@example.com");
+                    (201, "Test User", "test@example.com");
                     """)
             }
             
-        } catch MySQLError.rawError(let code, _){
+        } catch MysqlServerError.error(let code, _){
+            defer {
+                try? con?.close()
+            }
             XCTAssertEqual(code, 1062) // duplicate entry
-            let result = try? con?.query("select * from \(tableName)")
-            XCTAssertEqual(result??.asResultSet()?.count, nil)
+            let result = try? con?.query("select * from \(userTableName)")
+            
+            // check rollback is worked
+            XCTAssertEqual(result??.asRows()?.count, 200)
         } catch {
             XCTFail("\(error)")
         }

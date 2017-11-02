@@ -4,5 +4,7 @@ import XCTest
 XCTMain([
     testCase(ConnectionTests.allTests),
     testCase(TransactionTests.allTests),
-    testCase(ConnectionPoolTests.allTests)
+    testCase(ConnectionPoolTests.allTests),
+    testCase(SelectTests.allTests),
+    testCase(PreparedStatementTests.allTests)
 ])

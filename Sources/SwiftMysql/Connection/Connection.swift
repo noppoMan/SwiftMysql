@@ -41,7 +41,8 @@ public final class Connection: ConnectionProtocol {
         self.user = user
         self.password = password
         self.database = database
-        self.stream = try PacketStream(host: url.host ?? "localhost", port: UInt(url.port ?? 3306))
+        let tcp = try TCPStream(host: url.host ?? "localhost", port: UInt(url.port ?? 3306))
+        self.stream = PacketStream(stream: tcp)
         try self.open()
     }
     
@@ -66,14 +67,6 @@ public final class Connection: ConnectionProtocol {
         _isClosed = false
     }
     
-    func write(_ cmd: Commands, query: String) throws {
-        try stream.writePacket([cmd.rawValue] + query.utf8, packnr: -1)
-    }
-    
-    func write(_ cmd: Commands) throws {
-        try stream.writePacket([cmd.rawValue], packnr: -1)
-    }
-    
     func reserve(){
         cond.mutex.lock()
         isUsed = true
@@ -86,31 +79,8 @@ public final class Connection: ConnectionProtocol {
         cond.mutex.unlock()
     }
     
-    func readHeaderPacket() throws -> (Int, OKPacket?) {
-        let (bytes, _) = try stream.readPacket()
-        if let okPacket = try OKPacket(bytes: bytes) {
-            return (0, okPacket)
-        } else {
-            let (_num, n) = lenEncInt(bytes)
-            if let num = _num, (n - bytes.count) == 0 {
-                return (Int(num), nil)
-            } else {
-                return (0, nil)
-            }
-        }
-    }
-    
-    func readUntilEOF() throws {
-        while true {
-            let (bytes, _) = try stream.readPacket()
-            if bytes[0] == 0xfe {
-                break
-            }
-        }
-    }
-    
     public func close() throws {
-        try write(.quit)
+        try stream.write(.quit)
         stream.close()
         _isClosed = true
     }

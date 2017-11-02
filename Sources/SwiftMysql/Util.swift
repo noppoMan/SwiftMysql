@@ -2,28 +2,6 @@
 import CLibreSSL
 import Foundation
 
-enum MySQLError: Error {
-    case rawError(Int, String)
-}
-
-func createErrorFrom(errorPacket bytes :[UInt8]) -> MySQLError {
-    if bytes[0] != 0xff {
-        return MySQLError.rawError(-1, "EOF encountered")
-    }
-    
-    let errno = bytes[1...3].uInt16()
-    var pos = 3
-    
-    if bytes[3] == 0x23 {
-        pos = 9
-    }
-    var d1 = Array(bytes[pos..<bytes.count])
-    d1.append(0)
-    let errStr = d1.string()
-    
-    return MySQLError.rawError(Int(errno), errStr!)
-}
-
 func sha1(_ data: [UInt8]) -> [UInt8] {
     var md = [UInt8].init(repeating: 0, count: Int(SHA_DIGEST_LENGTH))
     var d = data
@@ -187,16 +165,14 @@ func lenEncBin(_ b:[UInt8]) ->([UInt8]?, Int) {
 }
 
 
-func lenEncStr(_ b: [UInt8]) -> (String?, Int) {
-    
+func lenEncStr(_ b:[UInt8]) ->(String?, Int) {
     var (_num, n) = lenEncInt(b)
     
     guard let num = _num else {
-        return (nil, 0)
+        return (nil, n)
     }
     
     if num < 1 {
-        
         return ("", n)
     }
     
@@ -212,7 +188,6 @@ func lenEncStr(_ b: [UInt8]) -> (String?, Int) {
 }
 
 func lenEncIntArray(_ v:UInt64) -> [UInt8] {
-    
     if v <= 250 {
         return [UInt8(v & 0xff)]
     }

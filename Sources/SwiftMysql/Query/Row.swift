@@ -1,2 +1,2 @@
-public typealias Row = [String: Any]
-public typealias ResultSet = [Row]
+public typealias Row = [String: Any?]
+public typealias Rows = [[String: Any?]]

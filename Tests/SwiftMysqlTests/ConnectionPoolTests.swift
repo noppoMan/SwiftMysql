@@ -4,6 +4,10 @@ import Foundation
 
 class ConnectionPoolTests: XCTestCase {
     
+    override func setUp() {
+        signal(EINTR) { _ in }
+    }
+    
     func testMinPool() {
         do {
             let pool = try ConnectionPool(
@@ -57,7 +61,8 @@ class ConnectionPoolTests: XCTestCase {
         )
         
         try? pool?.transaction { con in
-            _ = try con.query("show tables like 'user'")
+            let result = try con.query("show tables like 'user'")
+            _ = result.asRows()
             XCTAssertEqual(con.isTransacting, true)
             XCTAssertEqual(pool?.availableConnectionCount, 0)
         }

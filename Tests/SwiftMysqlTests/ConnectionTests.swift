@@ -5,8 +5,7 @@ import Foundation
 class ConnectionTests: XCTestCase {
     
     func testConnection() {
-        let url = URL(string: "mysql://localhost:3306")
-        let con = try! Connection(url: url!, user: "root", password: nil)
+        let con = try! Connection(url: mysqlURL, user: "root", password: nil)
         XCTAssertFalse(con.isClosed)
         try! con.close()
         XCTAssertTrue(con.isClosed)

@@ -10,8 +10,12 @@ class RowDataPacket: RowDataParsable {
         self.columns = columns
     }
     
-    func parse(bytes: [UInt8]) throws -> Row? {
-        if (bytes[0] == 0xfe) && (bytes.count == 5) {
+    func parse(bytes: [UInt8]) throws -> [Any?]? {
+        if columns.isEmpty {
+            return nil
+        }
+        
+        if bytes[0] == 0xfe && bytes.count == 5 {
             let flags = Array(bytes[3..<5]).uInt16()
             self.hasMoreResults = flags & serverMoreResultsExists == serverMoreResultsExists
             return nil
@@ -21,7 +25,7 @@ class RowDataPacket: RowDataParsable {
             throw createErrorFrom(errorPacket: bytes)
         }
         
-        var row = Row()
+        var rows = [Any?]()
         var pos = 0
         
         for index in 0...columns.count-1 {
@@ -31,52 +35,53 @@ class RowDataPacket: RowDataParsable {
             let column = columns[index]
             
             if let value = name {
+                let row: Any?
                 switch column.fieldType {
                 case .varString:
-                    row[column.name] = value
+                    row = value
                     
                 case .longlong:
-                    row[column.name] = column.flags.isUnsigned() ? UInt64(value) : Int64(value)
+                    row = column.flags.isUnsigned() ? UInt64(value) : Int64(value)
                     
-                case .int24:
-                    row[column.name] = column.flags.isUnsigned() ? UInt(value) : Int(value)
+                case .int24, .long:
+                    row = column.flags.isUnsigned() ? UInt(value) : Int(value)
                     
                 case .short:
-                    row[column.name] = column.flags.isUnsigned() ? UInt16(value) : Int16(value)
+                    row = column.flags.isUnsigned() ? UInt16(value) : Int16(value)
                     
                 case .tiny:
-                    row[column.name] = column.flags.isUnsigned() ? UInt8(value) : Int8(value)
+                    row = column.flags.isUnsigned() ? UInt8(value) : Int8(value)
                     
                 case .double:
-                    row[column.name] = Double(value)
+                    row = Double(value)
                     
                 case .float:
-                    row[column.name] = Float(value)
+                    row = Float(value)
                     
                 case .date:
-                    row[column.name] = Date(dateString: String(value))
+                    row = Date(dateString: String(value))
                     
                 case .time:
-                    row[column.name] = Date(timeString: String(value))
+                    row = Date(timeString: String(value))
                     
                 case .datetime:
-                    row[column.name] = Date(dateTimeString: String(value))
+                    row = Date(dateTimeString: String(value))
                     
                 case .timestamp:
-                    row[column.name] = Date(dateTimeString: String(value))
+                    row = Date(dateTimeString: String(value))
                     
                 case .null:
-                    row[column.name] = NSNull()
+                    row = nil
                     
                 default:
-                    row[column.name] = NSNull()
-                    
+                    row = nil
                 }
+                rows.append(row)
             } else {
-                row[column.name] = NSNull()
+                rows.append(nil)
             }
         }
         
-        return row
+        return rows
     }
 }

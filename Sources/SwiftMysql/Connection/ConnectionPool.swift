@@ -63,9 +63,9 @@ public final class ConnectionPool: ConnectionProtocol {
         let con = try getConnection()
         let result = try con.query(sql, bindParams: params)
         
-        if !con.isTransacting {
-            con.release()
-        }
+//        if !con.isTransacting {
+//            con.release()
+//        }
         
         return result
     }
@@ -74,9 +74,9 @@ public final class ConnectionPool: ConnectionProtocol {
         let con = try getConnection()
         let result = try con.query(sql)
         
-        if !con.isTransacting {
-            con.release()
-        }
+//        if !con.isTransacting {
+//            con.release()
+//        }
         
         return result
     }

@@ -83,5 +83,6 @@ public final class Connection: ConnectionProtocol {
         try stream.write(.quit)
         stream.close()
         _isClosed = true
+        release()
     }
 }

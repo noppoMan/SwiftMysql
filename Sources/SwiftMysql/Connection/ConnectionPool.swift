@@ -61,24 +61,12 @@ public final class ConnectionPool: ConnectionProtocol {
     
     public func query(_ sql: String, bindParams params: [Any]) throws -> QueryResult {
         let con = try getConnection()
-        let result = try con.query(sql, bindParams: params)
-        
-//        if !con.isTransacting {
-//            con.release()
-//        }
-        
-        return result
+        return try con.query(sql, bindParams: params)
     }
     
     public func query(_ sql: String) throws -> QueryResult {
         let con = try getConnection()
-        let result = try con.query(sql)
-        
-//        if !con.isTransacting {
-//            con.release()
-//        }
-        
-        return result
+        return try con.query(sql)
     }
     
     func getConnection(withRetryCount retryCount: Int = 0) throws -> Connection {

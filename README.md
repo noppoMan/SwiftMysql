@@ -100,6 +100,14 @@ try con.transaction {
 
 ### Rollback
 
+if the error is thrown in transaction block, `rollback` should be performed.
+
+```swift
+try con.transaction {
+    throw FooError
+}
+```
+
 ## Streaming query rows
 
 Sometimes you may want to select large quantities of rows and process each of them as they are received. This can be done like this
@@ -114,14 +122,6 @@ if let resultFetcher = result.asResultSet() {
     for row in resultFetcher.rows {
         print(row)
     }
-}
-```
-
-if the error is thrown in transaction block, `rollback` should be performed.
-
-```swift
-try con.transaction {
-    throw FooError
 }
 ```
 

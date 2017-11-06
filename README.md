@@ -4,6 +4,7 @@ A pure Swift Client implementing the MySql protocol. this is not depend on libmy
 
 ## Features
 
+* [x] Thread safe
 * [x] Pooling connections
 * [x] Prepared statements
 * [x] Transactions

@@ -13,11 +13,14 @@ public struct RowSequence: Sequence, IteratorProtocol {
     
     private let parser: RowDataParsable
     
+    private let onReceiveEOF: (() -> Void)?
+    
     public typealias Element = [Any?]
     
-    init(stream: PacketStream, fields: [Field], RowDataParser: RowDataParsable.Type) {
+    init(stream: PacketStream, fields: [Field], RowDataParser: RowDataParsable.Type, onReceiveEOF: (() -> Void)? = nil) {
         self.stream = stream
         self.parser = RowDataParser.init(columns: fields)
+        self.onReceiveEOF = onReceiveEOF
     }
     
     public mutating func next() -> [Any?]? {
@@ -41,6 +44,8 @@ public struct RowSequence: Sequence, IteratorProtocol {
             }
             break
         }
+        
+        onReceiveEOF?()
         
         return nil
     }

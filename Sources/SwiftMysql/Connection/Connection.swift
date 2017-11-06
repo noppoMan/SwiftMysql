@@ -34,7 +34,7 @@ public final class Connection: ConnectionProtocol {
     
     let stream: PacketStream
     
-    fileprivate let cond = Cond()
+    let cond = Cond()
     
     public init(url: URL, user: String, password: String? = nil, database: String? = nil) throws {
         self.url = url
@@ -83,5 +83,6 @@ public final class Connection: ConnectionProtocol {
         try stream.write(.quit)
         stream.close()
         _isClosed = true
+        release()
     }
 }

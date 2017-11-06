@@ -73,6 +73,10 @@ extension Connection {
         (len, _okPacket) = try stream.readHeaderPacket()
         
         if let okPacket = _okPacket {
+            if !isTransacting {
+                release() // release connection
+            }
+            
             let qs = QueryStatus(
                 affectedRows: okPacket.affectedRows ?? 0,
                 insertId: okPacket.insertId
@@ -87,7 +91,12 @@ extension Connection {
         let fetcher = ResultFetcher(
             stream: stream,
             columnLength: len,
-            RowDataParser: RowDataParser
+            RowDataParser: RowDataParser,
+            onReceiveEOF: { [weak self] in
+                if let isTransacting = self?.isTransacting, !isTransacting {
+                    self?.release()
+                }
+            }
         )
         return .resultSet(fetcher)
     }

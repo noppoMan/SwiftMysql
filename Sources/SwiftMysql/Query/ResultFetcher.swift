@@ -15,6 +15,8 @@ public final class ResultFetcher {
     
     private let RowDataParser: RowDataParsable.Type
     
+    private let onReceiveEOF: (() -> Void)?
+    
     public var columns: [String] {
         return fields?.map({ $0.name }) ?? []
     }
@@ -29,13 +31,19 @@ public final class ResultFetcher {
     }()
     
     public lazy var rows: RowSequence = {
-        return RowSequence(stream: stream, fields: fields ?? [], RowDataParser: RowDataParser)
+        return RowSequence(
+            stream: stream,
+            fields: fields ?? [],
+            RowDataParser: RowDataParser,
+            onReceiveEOF: onReceiveEOF
+        )
     }()
     
-    init(stream: PacketStream, columnLength: Int, RowDataParser: RowDataParsable.Type) {
+    init(stream: PacketStream, columnLength: Int, RowDataParser: RowDataParsable.Type, onReceiveEOF: (() -> Void)? = nil) {
         self.stream = stream
         self.columnLength = columnLength
         self.RowDataParser = RowDataParser
+        self.onReceiveEOF = onReceiveEOF
     }
     
     private func readColumns(count: Int) throws -> [Field] {

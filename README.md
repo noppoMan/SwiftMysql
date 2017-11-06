@@ -8,6 +8,7 @@ A pure Swift Client implementing the MySql protocol. this is not depend on libmy
 * [x] Prepared statements
 * [x] Transactions
 * [x] JSON Data Type in Mysql 5.7
+* [x] Streaming query rows
 * [ ] NonBlocking I/O
 
 ## Instllation
@@ -28,8 +29,8 @@ let url = URL(string: "mysql://localhost:3306")
 let con = try Connection(url: url!, user: "root", password: "password", database: "swift_mysql")
 
 let result = try con.query("selct * from users")
-if let rs = result.asResultSet() {
-    for row in rs {
+if let rows = result.asRows() {
+    for row in rows {
       print(row) // ["id": 1, "name": "Luke", "email": "test@example.com"]
     }
 }
@@ -44,7 +45,7 @@ let url = URL(string: "mysql://localhost:3306")
 let con = try Connection(url: url!, user: "root", password: "password", database: "swift_mysql")
 
 let result = try con.query("selct * from books where published_at > ? and category_id = ?", [2017, 3])
-if let rs = result.asResultSet() {
+if let rows = result.asRows() {
     for row in rs {
       print(row)
     }
@@ -99,22 +100,38 @@ try con.transaction {
 
 ### Rollback
 
+## Streaming query rows
+
+Sometimes you may want to select large quantities of rows and process each of them as they are received. This can be done like this
+
+```swift
+let result = try con.query("selct * from large_tables")
+if let resultFetcher = result.asResultSet() {
+    print(resultFetcher.columns) // [String]
+
+    // resultFetcher.rows is a infinity Sequence
+    // you can loop it until the Mysql sends EOF packet.
+    for row in resultFetcher.rows {
+        print(row)
+    }
+}
+```
+
 if the error is thrown in transaction block, `rollback` should be performed.
 
 ```swift
 try con.transaction {
-  throw FooError
+    throw FooError
 }
 ```
 
 ## Terminating connections
 
-once call `close` method, the TCP connection is terminated safely.
+once call `close` method, the Mysql connection is terminated safely.
 
 ```swift
 try con.close()
 ```
-
 
 ## License
 SwiftMysql is released under the MIT license. See LICENSE for details.

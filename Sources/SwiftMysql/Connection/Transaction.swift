@@ -24,7 +24,7 @@ extension Connection {
         do {
             _ = try query("START TRANSACTION;")
         } catch {
-            endTransaction()
+            _release()
             throw error
         }
         

@@ -9,19 +9,15 @@ class PacketStream {
         self.stream = stream
     }
     
-    func readHeader() throws -> (UInt32, Int) {
-        let length = try stream.read(upTo: 3).uInt24() // [n, n, n] payload length
-        let sequeceId = try stream.read(upTo: 1)[0] // [n] sequence ids
-        return (length, Int(sequeceId))
-    }
-    
     func readPacket() throws -> (Bytes, Int) {
-        let (len, sequeceId) = try readHeader()
+        let length = Int(try stream.read(upTo: 3).uInt24()) // [n, n, n] payload length
+        let sequenceId = try stream.read(upTo: 1)[0] // [n] sequence ids
+
         var bytes = Bytes()
-        while bytes.count < Int(len) {
-            bytes.append(contentsOf: try stream.read(upTo: Int(len)))
+        while bytes.count < length {
+            bytes.append(contentsOf: try stream.read(upTo: length))
         }
-        return (bytes, sequeceId)
+        return (bytes, Int(sequenceId))
     }
     
     func readHeaderPacket() throws -> (Int, OKPacket?) {

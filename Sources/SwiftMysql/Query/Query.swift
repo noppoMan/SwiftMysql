@@ -37,7 +37,7 @@ extension Connection {
             case 0x03:
                 throw MysqlClientError.commandsOutOfSync
             default:
-                throw createErrorFrom(errorPacket: bytes)
+                throw mysqlError(fromPacket: bytes) ?? MysqlServerError.eofEncountered
             }
         }
         
@@ -71,7 +71,6 @@ extension Connection {
     private func readResults(RowDataParser: RowDataParsable.Type) throws -> QueryResult {
         var len: Int, _okPacket: OKPacket?
         (len, _okPacket) = try stream.readHeaderPacket()
-        
         if let okPacket = _okPacket {
             if !isTransacting {
                 release() // release connection

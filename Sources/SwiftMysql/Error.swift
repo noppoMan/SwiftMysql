@@ -7,9 +7,9 @@
 
 import Foundation
 
-func createErrorFrom(errorPacket bytes :[UInt8]) -> MysqlError {
-    if bytes[0] != 0xff {
-        return MysqlClientError.error(code: -1, message: "EOF encountered")
+func mysqlError(fromPacket bytes :[UInt8]) -> MysqlError? {
+    if bytes.count == 0 || bytes[0] != 0xff {
+        return nil
     }
     
     let errno = bytes[1...3].uInt16()
@@ -66,12 +66,15 @@ extension MysqlClientError: CustomStringConvertible {
 }
 
 public enum MysqlServerError: MysqlError {
+    case eofEncountered
     case error(code: Int16, message: String)
 }
 
 extension MysqlServerError {
     public var code: Int16 {
         switch self {
+        case .eofEncountered:
+            return -1
         case .error(let code, _):
             return code
         }
@@ -79,6 +82,8 @@ extension MysqlServerError {
     
     public var message: String {
         switch self {
+        case .eofEncountered:
+            return "EOF encountered"
         case .error(_, let mes):
             return mes
         }

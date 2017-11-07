@@ -1,6 +1,6 @@
 import Foundation
 
-// TODO should devide into ReadablePacketStream and WeitablePacketStream
+// TODO should devide into ReadablePacketStream and WritablePacketStream
 class PacketStream {
     
     private let stream: DuplexStream
@@ -10,19 +10,18 @@ class PacketStream {
     }
     
     func readHeader() throws -> (UInt32, Int) {
-        let b = try stream.read(upTo: 3).uInt24() // [n, n, n] payload length
-        let pn = try stream.read(upTo: 1)[0] // [n] sequence id
-        return (b, Int(pn))
+        let length = try stream.read(upTo: 3).uInt24() // [n, n, n] payload length
+        let sequeceId = try stream.read(upTo: 1)[0] // [n] sequence ids
+        return (length, Int(sequeceId))
     }
     
     func readPacket() throws -> (Bytes, Int) {
-        let (len, packnr) = try readHeader()
+        let (len, sequeceId) = try readHeader()
         var bytes = Bytes()
         while bytes.count < Int(len) {
             bytes.append(contentsOf: try stream.read(upTo: Int(len)))
         }
-        
-        return (bytes, packnr)
+        return (bytes, sequeceId)
     }
     
     func readHeaderPacket() throws -> (Int, OKPacket?) {

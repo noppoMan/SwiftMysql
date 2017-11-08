@@ -22,8 +22,8 @@ class BinaryRowDataPacket: RowDataParsable {
                 return nil
             }
 
-            if bytes[0] == 0xff {
-                throw createErrorFrom(errorPacket: bytes)
+            if let error = mysqlError(fromPacket: bytes) {
+                throw error
             }
 
             guard bytes[0] > 0 && bytes[0] < 251 else {

@@ -21,8 +21,8 @@ class RowDataPacket: RowDataParsable {
             return nil
         }
         
-        if bytes[0] == 0xff {
-            throw createErrorFrom(errorPacket: bytes)
+        if let error = mysqlError(fromPacket: bytes) {
+            throw error
         }
         
         var rows = [Any?]()

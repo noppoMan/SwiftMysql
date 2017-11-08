@@ -22,7 +22,7 @@ public struct OKPacket {
             self.status = status
             
         case 0xff:
-            throw createErrorFrom(errorPacket: bytes)
+            throw mysqlError(fromPacket: bytes) ?? MysqlServerError.eofEncountered
         default:
             return nil
         }

@@ -28,7 +28,7 @@ public struct PrepareResultPacket {
             self.paramCount = paramCount
             
         default:
-            throw createErrorFrom(errorPacket: bytes)
+            throw mysqlError(fromPacket: bytes) ?? MysqlServerError.eofEncountered
         }
         
     }

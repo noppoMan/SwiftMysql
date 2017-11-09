@@ -12,7 +12,21 @@ public enum ConnectionPoolError: Error {
     case failedToGetConnectionFromPool
 }
 
-public final class ConnectionPool: ConnectionProtocol {
+public protocol ConnectionPoolProvidable {
+    /// The minimum connection pooling size
+    var minPoolSize: UInt { get }
+    
+    /// The Maximum connection pooling size
+    var maxPoolSize: UInt { get }
+    
+    /// Returns current pooling connection count
+    var pooledConnectionCount: Int { get }
+    
+    /// Returns current available pooling connection count
+    var availableConnectionCount: Int { get }
+}
+
+public final class ConnectionPool: ConnectionProtocol, ConnectionPoolProvidable {
     public let url: URL
     public let user: String
     public let password: String?
@@ -106,5 +120,6 @@ public final class ConnectionPool: ConnectionProtocol {
             try c.close()
         }
         _isClosed = true
+        connections.removeAll()
     }
 }

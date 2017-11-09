@@ -19,6 +19,6 @@ let package = Package(
             dependencies: ["ProrsumNet"]),
         .testTarget(
             name: "SwiftMysqlTests",
-            dependencies: ["SwiftMysql"]),
+            dependencies: ["SwiftMysql"])
     ]
 )

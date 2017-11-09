@@ -10,7 +10,7 @@ A pure Swift Client implementing the MySql protocol. this is not depend on libmy
 * [x] Transactions
 * [x] JSON Data Type in Mysql 5.7
 * [x] Streaming query rows
-* [ ] NonBlocking I/O
+* [x] Non-Blocking Querying
 
 ## Instllation
 
@@ -133,6 +133,181 @@ once call `close` method, the Mysql connection is terminated safely.
 ```swift
 try con.close()
 ```
+
+# Non-Blocking Querying
+
+SwiftMysql supports Non-Blocking querying with `AsyncConnection`. Non-Blocking means event-driven non-blocking I/O using OS native asynchronous system calls (epoll/kqueue). It doesn't concurrent execution by worker threads.
+
+Currently all of non-blocking features are **not thread safe**. So you should use them on the single thread.
+
+## Non-Blocking Querying with AsyncConnection
+
+You can asynchronously connect to the mysql with `AsyncConnection(url:user:password:database:queue)`,
+
+Once call initializer of `AsyncConnection`, connection is automatically opened on a specified thread(queue). Then, all of your operations(query) are queued and processed in order.
+The thread will create event loop on the own thread to observe the file descriptor of the connection.
+
+```swift
+import Foundation
+import SwiftMysql
+
+let url = URL(string: "mysql://localhost:3306")!
+let con = try SwiftMysql.AsyncConnection(
+    url: url,
+    user: "root",
+    password: nil,
+    database: "swift_mysql"
+)
+
+con.onConnect {
+    print("connected to \(url)")
+}
+
+con.onError { error in
+    print("Error: \(error)")
+}
+
+con.query("select * from users where id = 1") { result in
+    if let error = result.asError() {
+        print(error)
+        return
+    }
+
+    result.asRows {
+        print($0) // [["id": 1, "name": "Jack....]]
+    }
+}
+
+con.query("select * from users where id = 2") { result in
+    if let error = result.asError() {
+        print(error)
+        return
+    }
+
+    result.asRows {
+        print($0) // [["id": 2, "name": "Tonny....]]
+    }
+}
+
+RunLoop.main.run()
+```
+
+### Event Loop Thread
+
+If you didn't care the thread for running event loop, it's automatically determined by `DispatchQueue(attributes: .serial)` internally.
+
+Or you can provide it by `queue` label of initializer like following.
+
+```swift
+let url = URL(string: "mysql://localhost:3306")!
+let con = try SwiftMysql.AsyncConnection(
+    url: url,
+    user: "root",
+    password: nil,
+    database: "swift_mysql",
+    queue: DispatchQueue.main
+)
+
+con.connect {
+    print(Thread.current == Thread.main) // true
+}
+
+con.query("...") { _ in
+    print(Thread.current == Thread.main) // true
+}
+```
+
+### Event Driven Query rows and fields
+
+You can improve memory efficiency for fetching records to use `ResultSetEvent`.
+
+`ResultSetEvent` provides two methods to fetch fields and rows streamly.
+
+* `onFields`: onFields is called when the all fields packets are received.
+* `onRow`: onRow is called when the per row packets are received.
+
+```swift
+con.query("select * from users limit ?", bindParams: [100]) { result in
+    let rs = result.asResultSet() // get ResultSetEvent
+
+    rs.onFields { fields in
+        print(fields) // ["id", "name", "age"...]
+    }
+
+    event.onRow { row in
+        print(row) // [[1, "Jack", 35...]]
+    }
+}
+```
+
+
+## Pooling connections
+Also you can use pooling connections for non-blocking querying with `AsyncConnectionPool`. The usage is roughly same as sync version. The number of connections using at the same time are reached `maxPoolSize`, the next query queue should wait for a connection is available.
+
+```swift
+let pool = try AsyncConnectionPool(
+    url: url,
+    user: "root",
+    database: "swift_mysql",
+    minPoolSize: 2,
+    maxPoolSize: 10
+)
+
+pool.onReady {
+    print("The initial connections are ready")
+}
+
+pool.onNewConnectionIsReady {
+    print("new Connection is ready")
+}
+
+// Uses a existing connection
+pool.query("select * from users where id = ?", bindParams: [1]) { result in
+    result.asRows()
+    // connection will be released automatically,
+    // when the all of packets of this query are received.
+}
+
+// Uses a existing connection
+pool.query("select * from users where id = ?", bindParams: [2]) { result in
+    result.asRows()
+}
+
+// May create a new connection asynchronously.
+// Depends on the timing of first query finished.
+pool.query("select * from users where id = ?", bindParams: [3]) { result in
+    result.asRows()
+}
+```
+
+## Transactions
+
+```swift
+pool.transaction { error, con in
+    con?.query("insert into ....") { result in
+        if let error = result.asError() {
+            con?.rollback { _ in
+                done(error)
+            }
+            return
+        }
+
+        con?.query("update users set name = ....") { result in
+          if let error = result.asError() {
+              con?.rollback { _ in
+                  done(error)
+              }
+              return
+          }
+
+          con?.commit { _ in
+              done(nil)
+          }
+        }
+    }
+}
+```
+
 
 ## License
 SwiftMysql is released under the MIT license. See LICENSE for details.

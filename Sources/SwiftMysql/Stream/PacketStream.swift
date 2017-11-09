@@ -1,5 +1,18 @@
 import Foundation
 
+func okPacketOrFieldLength(for bytes: [Byte]) throws -> (Int, OKPacket?) {
+    if let okPacket = try OKPacket(bytes: bytes) {
+        return (0, okPacket)
+    } else {
+        let (_num, n) = lenEncInt(bytes)
+        if let num = _num, (n - bytes.count) == 0 {
+            return (Int(num), nil)
+        } else {
+            return (0, nil)
+        }
+    }
+}
+
 // TODO should devide into ReadablePacketStream and WritablePacketStream
 class PacketStream {
     
@@ -12,7 +25,6 @@ class PacketStream {
     func readPacket() throws -> (Bytes, Int) {
         let length = Int(try stream.read(upTo: 3).uInt24()) // [n, n, n] payload length
         let sequenceId = try stream.read(upTo: 1)[0] // [n] sequence ids
-
         var bytes = Bytes()
         while bytes.count < length {
             bytes.append(contentsOf: try stream.read(upTo: length))
@@ -22,16 +34,7 @@ class PacketStream {
     
     func readHeaderPacket() throws -> (Int, OKPacket?) {
         let (bytes, _) = try readPacket()
-        if let okPacket = try OKPacket(bytes: bytes) {
-            return (0, okPacket)
-        } else {
-            let (_num, n) = lenEncInt(bytes)
-            if let num = _num, (n - bytes.count) == 0 {
-                return (Int(num), nil)
-            } else {
-                return (0, nil)
-            }
-        }
+        return try okPacketOrFieldLength(for: bytes)
     }
     
     func readUntilEOF() throws {

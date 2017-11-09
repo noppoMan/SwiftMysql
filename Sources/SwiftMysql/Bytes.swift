@@ -79,6 +79,18 @@ extension UInt8 {
     func array() ->[UInt8] {
         return arrayOfBytes(self)
     }
+    
+    var isEOFPacket: Bool {
+        return self == 0xfe
+    }
+    
+    var isErrorPacket: Bool {
+        return self == 0xff
+    }
+    
+    var isStmtPacket: Bool {
+        return self == 0x00
+    }
 }
 
 

@@ -48,6 +48,23 @@ func createAccessTokenTable() throws {
     try con.close()
 }
 
+func newAsyncPoolingConnection() throws -> AsyncConnectionPool {
+    return try AsyncConnectionPool(
+        url: mysqlURL,
+        user: "root",
+        database: testDatabaseName,
+        minPoolSize: 2,
+        maxPoolSize: 5
+    )
+}
+
+func newAsyncConnection() throws -> AsyncConnection {
+    return try AsyncConnection(
+        url: mysqlURL,
+        user: "root",
+        database: testDatabaseName
+    )
+}
 
 func newConnection(withDatabase db: String? = nil) throws -> Connection {
     return try Connection(
@@ -100,3 +117,16 @@ func prepareTestDataSeed() throws {
     }
 }
 
+func series(tasks: [(@escaping () -> Void) -> Void], completion: @escaping () -> Void) {
+    func _series(_ index: Int) {
+        if index > tasks.count-1 {
+            completion()
+            return
+        }
+        let current = tasks[index]
+        current {
+            _series(index+1)
+        }
+    }
+    _series(0)
+}

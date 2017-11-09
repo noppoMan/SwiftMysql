@@ -96,9 +96,9 @@ public class AsyncTCPConnection: AsyncDuplexStream {
     private func createConnectSource() {
         self.connectSource = DispatchSource.makeReadSource(fileDescriptor: socket.fd, queue: queue)
         
-        connectSource!.setEventHandler { [weak self, weak connectSource] in
-            connectSource?.cancel()
+        connectSource!.setEventHandler { [weak self] in
             guard let strongSelf = self else { return }
+            strongSelf.connectSource?.cancel()
             strongSelf._onConnect?(nil, strongSelf)
             
             // move to read source

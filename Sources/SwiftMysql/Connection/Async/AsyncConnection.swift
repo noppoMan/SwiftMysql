@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Dispatch
 
 public struct Nothing {}
 public struct RowEndPacket {}

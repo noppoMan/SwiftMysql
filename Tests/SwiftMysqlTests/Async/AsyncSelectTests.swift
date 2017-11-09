@@ -1,7 +1,6 @@
 import XCTest
 @testable import SwiftMysql
 import Foundation
-import Dispatch
 
 class AsyncSelectTests: XCTestCase {
     override func setUp() {

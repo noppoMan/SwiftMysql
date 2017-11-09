@@ -14,16 +14,12 @@ class ConnectionPoolTests: XCTestCase {
         )
     }
     
-    func testMinPool() {
-        do {
-            let pool = try newPoolingConnection()
-            defer {
-                try? pool.close()
-            }
-            XCTAssertEqual(pool.availableConnectionCount, 2)
-        } catch {
-            XCTFail("\(error)")
+    func testMinPool() throws {
+        let pool = try newPoolingConnection()
+        defer {
+            try? pool.close()
         }
+        XCTAssertEqual(pool.availableConnectionCount, 2)
     }
     
     func testMaxPool() {
@@ -48,46 +44,35 @@ class ConnectionPoolTests: XCTestCase {
         }
     }
     
-    func testConnectionCount() {
-        do {
-            let pool = try newPoolingConnection()
-            defer {
-                try? pool.close()
-            }
-
-            XCTAssertEqual(pool.availableConnectionCount, 2)
-            let result = try pool.query("show tables like 'user'")
-            XCTAssertEqual(pool.availableConnectionCount, 1)
-            _ = result.asRows()
-            XCTAssertEqual(pool.availableConnectionCount, 2)
-        } catch {
-            print("hello")
-            print(error)
-            XCTFail("\(error)")
+    func testConnectionCount() throws {
+        let pool = try newPoolingConnection()
+        defer {
+            try? pool.close()
         }
+        
+        XCTAssertEqual(pool.availableConnectionCount, 2)
+        let result = try pool.query("show tables like 'user'")
+        XCTAssertEqual(pool.availableConnectionCount, 1)
+        _ = result.asRows()
+        XCTAssertEqual(pool.availableConnectionCount, 2)
     }
     
-    func testTransactingConnectionShouldNotBeRelease() {
-        do {
-            let pool = try newPoolingConnection()
-            defer {
-                try? pool.close()
-            }
-            
-            XCTAssertEqual(pool.availableConnectionCount, 2)
-            
-            try pool.transaction { con in
-                let result = try con.query("show tables like 'user'")
-                _ = result.asRows()
-                XCTAssertEqual(con.isTransacting, true)
-                XCTAssertEqual(pool.availableConnectionCount, 1)
-            }
-            
-            XCTAssertEqual(pool.availableConnectionCount, 2)
-            
-        } catch {
-            XCTFail("\(error)")
+    func testTransactingConnectionShouldNotBeRelease() throws {
+        let pool = try newPoolingConnection()
+        defer {
+            try? pool.close()
         }
+        
+        XCTAssertEqual(pool.availableConnectionCount, 2)
+        
+        try pool.transaction { con in
+            let result = try con.query("show tables like 'user'")
+            _ = result.asRows()
+            XCTAssertEqual(con.isTransacting, true)
+            XCTAssertEqual(pool.availableConnectionCount, 1)
+        }
+        
+        XCTAssertEqual(pool.availableConnectionCount, 2)
     }
     
     static var allTests : [(String, (ConnectionPoolTests) -> () throws -> Void)] {

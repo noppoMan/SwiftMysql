@@ -19,33 +19,29 @@ class TransactionTests: XCTestCase {
         cleanTestTables()
     }
     
-    func testTransactionCommit(){
-        do {
-            let con = try newConnection(withDatabase: testDatabaseName)
-            defer {
-                try? con.close()
-            }
-            _ = try con.transaction { con in
-                let res = try con.query("""
-                    INSERT INTO \(userTableName)(name, email)
-                        VALUES
-                        ("Jack", "jack@example.com");
-                    """)
-                XCTAssertEqual(res.asQueryStatus()?.insertId, 201)
-            }
-            
-            let result = try con.query("select * from \(userTableName)")
-            XCTAssertEqual(result.asRows()?.count, 201)
-        } catch {
-            XCTFail("\(error)")
+    func testTransactionCommit() throws {
+        let con = try newConnection(withDatabase: testDatabaseName)
+        defer {
+            try? con.close()
         }
+        _ = try con.transaction { con in
+            let res = try con.query("""
+                INSERT INTO \(userTableName)(name, email)
+                    VALUES
+                    ("Jack", "jack@example.com");
+                """)
+            XCTAssertEqual(res.asQueryStatus()?.insertId, 201)
+        }
+        
+        let result = try con.query("select * from \(userTableName)")
+        XCTAssertEqual(result.asRows()?.count, 201)
     }
     
-    func testTransactionRollback() {
-        let con = try? newConnection(withDatabase: testDatabaseName)
+    func testTransactionRollback() throws {
+        let con = try newConnection(withDatabase: testDatabaseName)
         
         do {
-            _ = try con?.transaction { con in
+            _ = try con.transaction { con in
                 try _ = con.query("""
                     INSERT INTO \(userTableName)(name, email)
                     VALUES
@@ -61,13 +57,13 @@ class TransactionTests: XCTestCase {
             
         } catch MysqlServerError.error(let code, _){
             defer {
-                try? con?.close()
+                try? con.close()
             }
             XCTAssertEqual(code, 1062) // duplicate entry
-            let result = try? con?.query("select * from \(userTableName)")
+            let result = try? con.query("select * from \(userTableName)")
             
             // check rollback is worked
-            XCTAssertEqual(result??.asRows()?.count, 200)
+            XCTAssertEqual(result?.asRows()?.count, 200)
         } catch {
             XCTFail("\(error)")
         }

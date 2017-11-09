@@ -12,22 +12,17 @@ class PreparedStatementTests: XCTestCase {
         cleanTestTables()
     }
     
-    func testSelect() {
+    func testSelect() throws {
+        let con = try newConnection(withDatabase: testDatabaseName)
+        defer {
+            try? con.close()
+        }
+        
         do {
-            let con = try newConnection(withDatabase: testDatabaseName)
-            defer {
-                try? con.close()
-            }
-            
-            do {
-                let result = try con.query("select * from users where id = ? OR id = ?", bindParams: [102, 200])
-                let rows = result.asRows()!
-                XCTAssertEqual(rows.first?["id"] as? Int, 102)
-                XCTAssertEqual(rows.last?["id"] as? Int, 200)
-            }
-            
-        } catch {
-            XCTFail("\(error)")
+            let result = try con.query("select * from users where id = ? OR id = ?", bindParams: [102, 200])
+            let rows = result.asRows()!
+            XCTAssertEqual(rows.first?["id"] as? Int, 102)
+            XCTAssertEqual(rows.last?["id"] as? Int, 200)
         }
     }
     

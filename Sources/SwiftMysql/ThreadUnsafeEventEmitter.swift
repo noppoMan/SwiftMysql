@@ -7,16 +7,13 @@
 
 import Foundation
 
-/**
- Thread safety EventEmitter
- */
-public class ThreadUnsafeEventEmitter<T> {
+class ThreadUnsafeEventEmitter<T> {
     
-    public var onceListenersCount: Int {
+    var onceListenersCount: Int {
         return onceListeners.count
     }
     
-    public var onListenersCount: Int {
+    var onListenersCount: Int {
         return onListeners.count
     }
     
@@ -24,9 +21,9 @@ public class ThreadUnsafeEventEmitter<T> {
     
     private var onListeners: [(T) -> Void] = []
     
-    public init() {}
+    init() {}
     
-    public func emit(with value: T) {
+    func emit(with value: T) {
         defer {
             onceListeners.removeAll()
         }
@@ -40,11 +37,11 @@ public class ThreadUnsafeEventEmitter<T> {
         }
     }
     
-    public func once(handler: @escaping (T) -> Void) {
+    func once(handler: @escaping (T) -> Void) {
         onceListeners.append(handler)
     }
     
-    public func on(handler: @escaping (T) -> Void) {
+    func on(handler: @escaping (T) -> Void) {
         onListeners.append(handler)
     }
 }

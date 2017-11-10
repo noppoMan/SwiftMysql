@@ -1,6 +1,6 @@
 # SwiftMysql
 
-A pure Swift Client implementing the MySql protocol. this is not depend on libmysql.
+A pure Swift Client implementing the MySQL protocol. this is not depend on libmysql.
 
 ## Features
 
@@ -8,7 +8,7 @@ A pure Swift Client implementing the MySql protocol. this is not depend on libmy
 * [x] Pooling connections
 * [x] Prepared statements
 * [x] Transactions
-* [x] JSON Data Type in Mysql 5.7
+* [x] JSON Data Type in MySQL 5.7
 * [x] Streaming query rows
 * [x] Non-Blocking Querying
 

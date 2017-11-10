@@ -1,5 +1,7 @@
 # SwiftMysql
 
+[![Build Status](https://travis-ci.org/noppoMan/SwiftMysql.svg?branch=master)](https://travis-ci.org/noppoMan/SwiftMysql)
+
 A pure Swift Client implementing the MySQL protocol. this is not depend on libmysql.
 
 ## Features
